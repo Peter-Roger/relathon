@@ -1,0 +1,68 @@
+# Grammar for Relathon in Backus–Naur form
+#
+# Start symbols for the grammar:
+#       module is a module or sequence of zero or more statements read from an input file;
+#       single_input is a single interactive statement;
+
+module		  ::= (NEWLINE | stmt)* ENDMARKER
+single_input  ::= NEWLINE | simple_stmt | compound_stmt NEWLINE
+
+stmt          ::= simple_stmt
+                | compound_stmt
+                | funcdef
+
+simple_stmt   ::= small_stmt (';' small_stmt)* [';'] NEWLINE
+
+funcdef       ::= 'def' NAME paramlist (':' suite | '=' expr)
+paramlist     ::= '(' [NAME, (',' NAME)* [,]] ')'
+suite         ::= NEWLINE INDENT stmt+ DEDENT
+
+small_stmt    ::= expr_stmt
+                | import_stmt
+                | pass_stmt
+                | flow_stmt
+
+expr_stmt     ::= expr | assign_stmt
+assign_stmt   ::= NAME ('=' | augassign) expr
+augassign     ::= '*=' | '|=' | '&='
+
+import_stmt   ::= 'import' NAME
+pass_stmt     ::= 'pass'
+flow_stmt     ::= break_stmt
+                | continue_stmt
+                | return_stmt
+break_stmt    ::= 'break'
+continue_stmt ::= 'continue'
+return_stmt   ::= 'return' expr
+
+compound_stmt ::= if_stmt | while_stmt
+if_stmt       ::= 'if' expr ':' suite ('elif' expr ':' suite)* ['else' ':' suite]
+while_stmt    ::= 'while' expr ':' suite ['else' ':' suite]
+
+expr          ::= or_expr ['if' or_expr 'else' expr]
+or_expr       ::= and_expr ('or' and_expr)*
+and_expr      ::= not_expr ('and' not_expr)*
+not_expr      ::= 'not' not_expr | comparison
+comparison    ::= factor (comp_op factor)*
+comp_op       ::= '<'|'>'|'=='|'>='|'<='|'!='
+
+factor        ::= term (('|'|'&') term)*
+term          ::= unary_term (('*') unary_term)*
+unary_term    ::= ('~'| 'not') unary_term | transpose
+transpose     ::= atom_expr ['^']
+atom_expr     ::= atom trailer*
+atom          ::= NAME | literal | expr | orderedpairs
+literal       ::= BOOL | INTEGER | FLOAT | CHAR
+
+
+trailer       ::= '(' [arglist] ')'
+arglist       ::= expr (',' expr)*  [',']
+
+ordered_pairs ::= '{' [ pair (',' pair)* ] '}'
+pair          ::= '('INTEGER',' INTEGER ')'
+
+NAME          ::= [A-Za-z_][A-Za-z0-9_-]*
+BOOL	      ::= 'True' | 'False'
+INTEGER       ::= ([1-9]\d*|0)
+FLOAT         ::= (([1-9]\d*|0)*\.\d+)
+CHAR          ::= \".\"|\'.\'
