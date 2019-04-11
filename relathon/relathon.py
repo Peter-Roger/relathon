@@ -221,7 +221,7 @@ def import_module(intrpr, symbol_table, module):
     if type(intrpr) == int:
         sys.exit(intrpr)
     else:
-        symbols = intrpr.currentEnv
+        symbols = intrpr.current_env
         for sym, val in symbols.values.items():
             symbol_table.define(sym, val)
 

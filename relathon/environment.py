@@ -18,26 +18,26 @@ class Environment:
         enclosingEnv (Environment) - parent environment
     """
 
-    def __init__(self, envName="", envLevel=0, enclosingEnv=None):
+    def __init__(self, name="", level=0, enclosingEnv=None):
         self.values = OrderedDict()
-        self.envName = envName
-        self.envLevel = envLevel
+        self.name = name
+        self.level = level
         self.enclosingEnv = enclosingEnv
 
     def __str__(self):
         """Prints a nicely formatted human-readable table."""
-        h1 = 'SCOPE (SCOPED SYMBOL TABLE)'
+        h1 = 'Environment (Scoped Symbol Table)'
         lines = ['\n', h1, '=' * len(h1)]
         for headerName, headerValue in (
-            ('Scope name', self.envName),
-            ('Scope level', self.envLevel),
-            ('Enclosing scope',
-             self.enclosingEnv.envName if self.enclosingEnv else None
+            ('Env name', self.name),
+            ('Env level', self.level),
+            ('Enclosing env',
+             self.enclosingEnv.name if self.enclosingEnv else None
             )
         ):
             lines.append('%-15s: %s' % (headerName, headerValue))
 
-        h2 = 'Scope (Scoped symbol table) contents'
+        h2 = 'Environment contents'
         lines.extend([h2, '-' * len(h2)])
         lines.extend(
             ('%7s: %r' % (key, value))

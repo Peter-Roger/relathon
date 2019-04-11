@@ -20,11 +20,14 @@ class Return(Exception):
     def __init__(self, value):
         self.value = value
 
+
 class Continue(Exception):
     pass
 
+
 class Break(Exception):
     pass
+
 
 class Visitor(object):
     """Base Class to the Tree-Walking node visitor interpreter."""
@@ -47,6 +50,7 @@ class Visitor(object):
     def visitDefault(self, node):
         raise NotImplementedError(node.__class__.__name__)
 
+
 class Interpreter(Visitor):
     """A tree walker interpreter with a method for each AST node type."""
 
@@ -54,8 +58,8 @@ class Interpreter(Visitor):
 
     def __init__(self, context=None):
         self.context = context if context else PyrelContext()
-        builtins_ = Environment(envName="_builtins_")
-        self.currentEnv = builtins_
+        builtins_ = Environment(name="_builtins_")
+        self.current_env = builtins_
         self._define_builtins()
 
         self.callstack = []
@@ -65,8 +69,8 @@ class Interpreter(Visitor):
         self.TrueRel = self.context.new(1,1,[(0,0)])
         self.FalseRel = self.context.new(1,1)
 
-        if self.currentEnv.envName == "_builtins_":
-            builtins_ = self.currentEnv
+        if self.current_env.name == "_builtins_":
+            builtins_ = self.current_env
             builtins_.define("new", NewFunction(self.context))
             builtins_.define("copy", CopyFunction(self.context))
             builtins_.define("random", RandomFunction(self.context))
@@ -99,11 +103,11 @@ class Interpreter(Visitor):
             }
 
         globals_ = Environment(
-            envName='globals',
-            envLevel = self.currentEnv.envLevel + 1,
-            enclosingEnv= self.currentEnv
+            name='globals',
+            level = self.current_env.level + 1,
+            enclosingEnv= self.current_env
         )
-        self.currentEnv = globals_
+        self.current_env = globals_
 
     def pushCall(self, location, scope):
         """Push a call onto the call stack."""
@@ -119,7 +123,8 @@ class Interpreter(Visitor):
         try:
             result = super().visit(node)
         except PyrelException as e:
-            raise RelationException(self.callstack, node.location, self.currentEnv.envName, e.msg)
+            raise RelationException(self.callstack, node.location, \
+                  self.current_env.name, e.msg)
         return result
 
     def visitModule(self, node):
@@ -135,14 +140,15 @@ class Interpreter(Visitor):
         parameters = [param.data() for param in node.parameters]
         statements = node.suite
         function = Function(name, parameters, statements)
-        self.currentEnv.define(name, function)
+        self.current_env.define(name, function)
 
     def visitFunctionCall(self, node):
         function = self.visit(node.callee)
         if not isinstance(function, Callable):
-            raise TypeException(self.callstack, node.location, self.currentEnv.envName,
+            raise TypeException(self.callstack, node.location, \
+                  self.current_env.name,
                 "'{}\' object is not callable".format(type(function)))
-        self.pushCall(node.location, self.currentEnv.envName)
+        self.pushCall(node.location, self.current_env.name)
         resolvedArgs = []
         for arg in node.arguments:
             resolvedArgs.append(self.visit(arg))
@@ -151,15 +157,15 @@ class Interpreter(Visitor):
 
             def eval_function(env, statements):
                 env = env
-                enclosingEnv = self.currentEnv
+                enclosingEnv = self.current_env
                 env.enclosingEnv = enclosingEnv
-                env.envLevel = enclosingEnv.envLevel + 1
-                self.currentEnv = env
+                env.level = enclosingEnv.level + 1
+                self.current_env = env
                 r_val = False
                 try:
                     self.visitSuite(statements)
                 except Return as r:
-                    self.currentEnv = enclosingEnv
+                    self.current_env = enclosingEnv
                     return r.value
 
             result = eval_function(result, function.statements)
@@ -174,7 +180,7 @@ class Interpreter(Visitor):
         target = node.target
         op = node.operator
         expr = node.expression
-        if op.tag in [STAREQUAL, AMBEREQUAL, VBAREQUAL]: # augmented assignment
+        if op.tag in (STAREQUAL, AMBEREQUAL, VBAREQUAL): # augmented assignment
             op.tag = op.tag.replace(EQUAL, '')
             expr = BinaryOperation(node.location, target, op, node.expression)
         value = self.visit(expr)
@@ -182,22 +188,23 @@ class Interpreter(Visitor):
             value = value.copy() # create a new relation in memory
         except AttributeError:
             pass
-        self.currentEnv.define(target.data(), value)
+        self.current_env.define(target.data(), value)
 
     def visitImportStatement(self, node):
         module = node.data().data()
-        env = self.currentEnv
-        while env.envName != "_builtins_":
+        env = self.current_env
+        while env.name != "_builtins_":
             env = env.enclosingEnv
         try:
             relathon.import_module(self, env, module)
         except FileNotFoundError:
-            raise ModuleNotFoundException(self.callstack, node.location, self.currentEnv.envName, module)
+            raise ModuleNotFoundException(self.callstack, node.location, \
+                  self.current_env.name, module)
 
     def visitWhileStatement(self, node):
         result = self.visit(node.condition)
         if not isinstance(result, Relation) or (result.rows, result.cols) != (1,1):
-            raise TypeException(self.callstack, node.location, self.currentEnv.envName, "condition must reduce to a relation of type [1<->1]")
+            raise TypeException(self.callstack, node.location, self.current_env.name, "condition must reduce to a relation of type [1<->1]")
         while result == self.TrueRel:
             try:
                 self.visit(node.whileSuite)
@@ -210,7 +217,7 @@ class Interpreter(Visitor):
     def visitIfStatement(self, node):
         result = self.visit(node.condition)
         if not isinstance(result, Relation) or (result.rows, result.cols) != (1,1):
-            raise TypeException(self.callstack, node.location, self.currentEnv.envName, "condition must reduce to a relation of type [1<->1]")
+            raise TypeException(self.callstack, node.location, self.current_env.name, "condition must reduce to a relation of type [1<->1]")
         if result == self.TrueRel:
             self.visit(node.ifSuite)
         else:
@@ -225,7 +232,7 @@ class Interpreter(Visitor):
     def visitElifStatement(self, node):
         result = self.visit(node.condition)
         if not isinstance(result, Relation) or (result.rows, result.cols) != (1,1):
-            raise TypeException(self.callstack, node.location, self.currentEnv.envName, "condition must reduce to a relation of type [1<->1]")
+            raise TypeException(self.callstack, node.location, self.current_env.name, "condition must reduce to a relation of type [1<->1]")
         if result == self.TrueRel:
             self.visit(node.body)
             return True
@@ -235,7 +242,7 @@ class Interpreter(Visitor):
     def visitTernaryOperation(self, node):
         result = self.visit(node.condition)
         if not isinstance(result, Relation) or (result.rows, result.cols) != (1,1):
-            raise TypeException(self.callstack, node.location, self.currentEnv.envName, "condition must reduce to a relation of type [1<->1]")
+            raise TypeException(self.callstack, node.location, self.current_env.name, "condition must reduce to a relation of type [1<->1]")
 
         if result == self.TrueRel:
             value = self.visit(node.expr)
@@ -265,7 +272,7 @@ class Interpreter(Visitor):
                 lhs_name = 'char'
             if type(rhs) == str:
                 rhs_name = 'char'
-            raise TypeException(self.callstack, node.location, self.currentEnv.envName, "unsupported operand type for {}: \'{}\' and \'{}\'".format(node.data(), lhs_name, rhs_name))
+            raise TypeException(self.callstack, node.location, self.current_env.name, "unsupported operand type for {}: \'{}\' and \'{}\'".format(node.data(), lhs_name, rhs_name))
         else:
             return result
 
@@ -282,15 +289,15 @@ class Interpreter(Visitor):
         try:
             result = operation(operand)
         except AttributeError:
-            raise TypeException(self.callstack, node.location, self.currentEnv.envName, "bad operand type for unary {}: \'{}\'.".format(node.data(), operand.__class__.__name__))
+            raise TypeException(self.callstack, node.location, self.current_env.name, "bad operand type for unary {}: \'{}\'.".format(node.data(), operand.__class__.__name__))
         else:
             return result
 
     def visitVariable(self, node):
         identifier = node.data()
-        value = self.currentEnv.resolve(identifier)
+        value = self.current_env.resolve(identifier)
         if value is False: # Not defined
-            raise NameException(self.callstack, node.location, self.currentEnv.envName, identifier)
+            raise NameException(self.callstack, node.location, self.current_env.name, identifier)
         return value
 
     def visitOrderedPairs(self, node):

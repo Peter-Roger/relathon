@@ -3,7 +3,7 @@
 # This file is part of relathon. Use of this source code is governed by
 # the GPL license that can be found in the LICENSE file.
 
-"""A recursive decent parser with a lookahead of 2.
+"""A recursive decent parser with a lookahead of 1.
 
 Each function corresponds to a production rule in the grammar. The
 grammar should be considered documentation for this module and can
@@ -24,35 +24,28 @@ FLOW = (BREAK, CONTINUE, PASS)
 BOOL = (TRUE, FALSE)
 LITERAL = (*BOOL, INTEGER, FLOAT, CHAR, NONE)
 
-class Incomplete(Exception):
-    pass
-
 class Parser:
-
-    k = 2
 
     def __init__(self, lexer):
         self.lexer = lexer
         self.prompt = lexer.prompt
 
-        self.lookahead = [None] * self.k
-        self.p = 0
+        self.lookahead = None
         self.prevTok = None
-        # initialize self.lookahead
-        self._consume()
-        self._consume()
+        self.p = 0
+
+        self._consume() # initialize self.lookahead
         self.location = Location(self.lexer.filename, self.p, 1, 0, 1, 0)
 
-        self.inLoop = False
+        self.inLoop = False # for parsing break and continue statements
 
     def _consume(self):
-        self.location = getattr(self.lookahead[self.p], "location", NoLoc)
-        self.prevTok = self.lookahead[self.p]
-        self.lookahead[self.p] = self.lexer.nextToken()
-        self.p = (self.p+1) % self.k
+        self.location = getattr(self.lookahead, "location", NoLoc)
+        self.prevTok = self.lookahead
+        self.lookahead = self.lexer.nextToken()
 
     def _error(self, expected=None, arg=None):
-        tok = self._lookaheadToken(1)
+        tok = self._lookaheadToken()
         if tok.tag == EOF:
             msg = "unexpected EOF while parsing"
         elif tok.tag in (BREAK, CONTINUE):
@@ -72,36 +65,33 @@ class Parser:
         raise ParserException(tok.location, msg, tok.tag)
 
     def _match(self, *token_types):
-        if (self._lookahead(1) in token_types):
+        if (self._lookahead() in token_types):
             self._consume()
         else:
             self._error(expected=token_types)
 
-    def _lookaheadToken(self, i):
-        return self.lookahead[(self.p+i-1)%self.k]
+    def _lookaheadToken(self):
+        return self.lookahead
 
-    def _lookahead(self, i):
-        return self._lookaheadToken(i).tag
+    def _lookahead(self):
+        return self._lookaheadToken().tag
 
     def _location(self, begin):
         return begin.combine(self.location)
 
     def parse(self, parseMethod):
-        try:
-            return parseMethod(self)
-        except Incomplete:
-            return None
+        return parseMethod(self)
 
     def nearEnd(self):
-        return all(t.tag in (DEDENT, NEWLINE, EOF) for t in self.lookahead[self.p:])
+        return self.lookahead.tag in (DEDENT, NEWLINE, EOF)
 
     def module(self):
         # (NEWLINE | stmt)* ENDMARKER
         beginloc = self.location
         stmts = []
-        if self._lookaheadToken(1):
-            while self._lookahead(1) != EOF:
-                if self._lookahead(1)  == NEWLINE:
+        if self._lookaheadToken():
+            while self._lookahead() != EOF:
+                if self._lookahead()  == NEWLINE:
                     self._match(NEWLINE, INDENT)
                     continue
                 else:
@@ -110,10 +100,10 @@ class Parser:
 
     def single_input(self):
         # single_input: NEWLINE | simple_stmt | compound_stmt NEWLINE
-        if self._lookahead(1) in (NEWLINE, INDENT, EOF):
+        if self._lookahead() in (NEWLINE, EOF):
             self._match(NEWLINE, EOF)
             return self.null()
-        elif self._lookahead(1) in (IF, WHILE, FUNCDEF):
+        elif self._lookahead() in (IF, WHILE, FUNCDEF):
             stmt = self.compound_stmt()
         else:
             stmt = self.simple_stmt()
@@ -121,7 +111,7 @@ class Parser:
 
     def statement(self):
         beginloc = self.location
-        if self._lookahead(1) in (IF, WHILE, FUNCDEF):
+        if self._lookahead() in (IF, WHILE, FUNCDEF):
             stmt = self.compound_stmt()
         else:
             stmt = self.simple_stmt() # could be a list of statements
@@ -129,9 +119,9 @@ class Parser:
 
     def compound_stmt(self):
         beginloc = self.location
-        if self._lookahead(1) == IF:
+        if self._lookahead() == IF:
             compound = self.if_stmt()
-        elif self._lookahead(1) == WHILE:
+        elif self._lookahead() == WHILE:
             compound = self.while_stmt()
         else:
             compound = self.functionDef()
@@ -139,34 +129,31 @@ class Parser:
 
     def simple_stmt(self):
         beginloc = self.location
-        small_stmt = self.small_stmt()
-        while self._lookahead(1) == SEMI and self._lookahead(2) != NEWLINE:
-            small_stmt = [small_stmt]
+        small_stmt = [self.small_stmt()]
+        while self._lookahead() == SEMI and self._lookahead() not in (NEWLINE, EOF):
             self._match(SEMI)
-            small = self.small_stmt()
-            small_stmt.append(small)
-        if self._lookahead(1) == SEMI:
-            self._match(SEMI)
-        if self._lookahead(1) == EOF:
-            self._match(EOF)
+            if self._lookahead() not in (NEWLINE, EOF):
+                small = self.small_stmt()
+                small_stmt.append(small)
+        if self._lookahead() in (NEWLINE, EOF):
+            self._match(NEWLINE, EOF)
+        if len(small_stmt) > 1:
+            return ast.Suite(self._location(beginloc), small_stmt)
         else:
-            self._match(NEWLINE)
-        if type(small_stmt) == list:
-            small_stmt = ast.Suite(self._location(beginloc), small_stmt)
-        return small_stmt
+            return small_stmt[0]
 
     def small_stmt(self):
         beginloc = self.location
-        if self._lookahead(1) in FLOW:
+        if self._lookahead() in FLOW:
             stmt = self.control_stmt()
-        elif self._lookahead(1) == RETURN:
+        elif self._lookahead() == RETURN:
             self._match(RETURN)
-            if self._lookahead(1) in (NEWLINE, EOF): # Return None
+            if self._lookahead() in (NEWLINE, EOF): # Return None
                 expr = None
             else:
                 expr = self.expr()
             stmt = ast.ReturnStatement(self._location(beginloc), expr)
-        elif self._lookahead(1) == IMPORT:
+        elif self._lookahead() == IMPORT:
             stmt = self.import_stmt()
         else:
             stmt = self.expr_stmt()
@@ -175,10 +162,10 @@ class Parser:
     def expr_stmt(self):
         beginloc = self.location
         expr_stmt = self.expr()
-        if self._lookahead(1) in ASSIGN_OP:
+        if self._lookahead() in ASSIGN_OP:
             if type(expr_stmt) != ast.Variable:
                 self._error(arg=expr_stmt)
-            op = self._lookaheadToken(1)
+            op = self._lookaheadToken()
             self._match(*ASSIGN_OP)
             expr = self.expr()
             expr_stmt = ast.Assignment(self._location(beginloc), expr_stmt, op, expr)
@@ -186,13 +173,13 @@ class Parser:
 
     def control_stmt(self):
         beginloc = self.location
-        if self._lookahead(1) == BREAK:
+        if self._lookahead() == BREAK:
             if self.inLoop:
                 self._match(BREAK)
                 stmt = ast.BreakStatement(self._location(beginloc))
             else:
                 self._error()
-        elif self._lookahead(1) == CONTINUE:
+        elif self._lookahead() == CONTINUE:
             if self.inLoop:
                 self._match(CONTINUE)
                 stmt = ast.ContinueStatement(self._location(beginloc))
@@ -208,10 +195,10 @@ class Parser:
         self._match(FUNCDEF)
         identifier = self.name()
         parameters = self.paramlist()
-        if self._lookahead(1) == COLON:
+        if self._lookahead() == COLON:
             self._match(COLON)
             body = self.suite()
-        elif self._lookahead(1) == EQUAL: # Single Line function
+        elif self._lookahead() == EQUAL: # Single Line function
             self._match(EQUAL)
             expr = self.expr()
             body = ast.Suite(self._location(beginloc), [ast.ReturnStatement(self._location(beginloc), expr)])
@@ -222,9 +209,9 @@ class Parser:
     def paramlist(self):
         parameters = []
         self._match(LPAR)
-        while self._lookahead(1) != RPAR:
+        while self._lookahead() != RPAR:
             parameters.append(self.param())
-            if self._lookahead(1) == COMMA:
+            if self._lookahead() == COMMA:
                 self._match(COMMA)
         self._match(RPAR)
         return parameters
@@ -236,16 +223,16 @@ class Parser:
     def suite(self):
         beginloc = self.location
         stmts = []
-        if self._lookahead(1) == NEWLINE:
+        if self._lookahead() == NEWLINE:
             self._match(NEWLINE)
-            if self._lookahead(1) == INDENT:
+            if self._lookahead() == INDENT:
                 self._match(INDENT)
                 stmt = self.statement()
                 stmts.extend(stmt if type(stmt) == list else [stmt])
-                while self._lookahead(1) not in (DEDENT, EOF):
+                while self._lookahead() not in (DEDENT, EOF):
                     stmt = self.statement()
                     stmts.extend(stmt if type(stmt) == list else [stmt])
-                if self._lookahead(1) == DEDENT:
+                if self._lookahead() == DEDENT:
                     self._match(DEDENT)
         if not stmts: # this should raise an indentation error
             self._error(INDENT)
@@ -265,14 +252,14 @@ class Parser:
         suite = self.suite()
         elif_stmts = []
         else_stmt = []
-        while self._lookahead(1) == ELIF:
+        while self._lookahead() == ELIF:
             self._match(ELIF)
             elif_condition = self.expr()
             self._match(COLON)
             body = self.suite()
             _elif = ast.ElifStatement(self._location(beginloc), elif_condition, body)
             elif_stmts.append(_elif)
-        if self._lookahead(1) == ELSE:
+        if self._lookahead() == ELSE:
             self._match(ELSE)
             self._match(COLON)
             else_stmt = self.suite()
@@ -287,7 +274,7 @@ class Parser:
         suite = self.suite()
         self.inLoop = False
         _else = None
-        if self._lookahead(1) == ELSE:
+        if self._lookahead() == ELSE:
             self._match(ELSE)
             self._match(COLON)
             _else = self.suite()
@@ -296,7 +283,7 @@ class Parser:
     def expr(self):
         beginloc = self.location
         expr = self.or_expr()
-        if self._lookahead(1) == IF:
+        if self._lookahead() == IF:
             self._match(IF)
             condition = self.expr()
             self._match(ELSE)
@@ -307,8 +294,8 @@ class Parser:
     def or_expr(self):
         beginloc = self.location
         expr = self.and_expr()
-        if self._lookahead(1) == OR:
-            op = self._lookaheadToken(1)
+        if self._lookahead() == OR:
+            op = self._lookaheadToken()
             self._match(OR)
             right_expr = self.or_expr()
             expr = ast.BooleanOperation(self._location(beginloc), expr, op, right_expr)
@@ -317,8 +304,8 @@ class Parser:
     def and_expr(self):
         beginloc = self.location
         expr = self.not_expr()
-        if self._lookahead(1) == AND:
-            op = self._lookaheadToken(1)
+        if self._lookahead() == AND:
+            op = self._lookaheadToken()
             self._match(AND)
             right_expr = self.and_expr()
             expr = ast.BooleanOperation(self._location(beginloc), expr, op, right_expr)
@@ -326,8 +313,8 @@ class Parser:
 
     def not_expr(self):
         beginloc = self.location
-        if self._lookahead(1) == NOT:
-            op = self._lookaheadToken(1)
+        if self._lookahead() == NOT:
+            op = self._lookaheadToken()
             self._match(NOT)
             operand = self.not_expr()
             expr = ast.UnaryOperation(self._location(beginloc), operand, op)
@@ -338,8 +325,8 @@ class Parser:
     def comparison(self):
         beginloc = self.location
         left = self.factor()
-        if self._lookahead(1) in COMP_OP:
-            op = self._lookaheadToken(1)
+        if self._lookahead() in COMP_OP:
+            op = self._lookaheadToken()
             self._match(*COMP_OP)
             right = self.comparison()
             return ast.Comparison(self._location(beginloc), left, op, right)
@@ -348,8 +335,8 @@ class Parser:
     def factor(self):
         beginloc = self.location
         factor = self.term()
-        if self._lookahead(1) in (VBAR, AMBER):
-            op = self._lookaheadToken(1)
+        if self._lookahead() in (VBAR, AMBER):
+            op = self._lookaheadToken()
             self._match(VBAR, AMBER)
             right_factor = self.factor()
             factor = ast.BinaryOperation(self._location(beginloc), factor, op, right_factor)
@@ -358,8 +345,8 @@ class Parser:
     def term(self):
         beginloc = self.location
         term = self.unary_term()
-        if self._lookahead(1) == STAR:
-            op = self._lookaheadToken(1)
+        if self._lookahead() == STAR:
+            op = self._lookaheadToken()
             self._match(STAR)
             right_term = self.term()
             term = ast.BinaryOperation(self._location(beginloc), term, op, right_term)
@@ -367,15 +354,15 @@ class Parser:
 
     def unary_term(self):
         beginloc = self.location
-        if self._lookahead(1) == TILDE:
-            op = self._lookaheadToken(1)
+        if self._lookahead() == TILDE:
+            op = self._lookaheadToken()
             self._match(TILDE)
             operand = self.unary_term()
             term = ast.UnaryOperation(self._location(beginloc), operand, op)
         else:
             term = self.atom_expr()
-            while self._lookahead(1) == CIRCUMFLEX:
-                op = self._lookaheadToken(1)
+            while self._lookahead() == CIRCUMFLEX:
+                op = self._lookaheadToken()
                 self._match(CIRCUMFLEX)
                 term = ast.UnaryOperation(self._location(beginloc), term, op)
         return term
@@ -383,7 +370,7 @@ class Parser:
     def atom_expr(self):
         beginloc = self.location
         atom = self.atom()
-        if self._lookahead(1) == LPAR:
+        if self._lookahead() == LPAR:
             trailer = self.trailer()
             return ast.FunctionCall(self._location(beginloc), atom, trailer)
         return atom
@@ -395,19 +382,18 @@ class Parser:
         return arglist
 
     def arglist(self):
-        if self._lookahead(1) == RPAR:
+        if self._lookahead() == RPAR:
             args = []
         else:
             args = [self.expr()]
-            while self._lookahead(1) == COMMA and self._lookahead(2) != RPAR:
+            while self._lookahead() == COMMA and self._lookahead() != RPAR:
                 self._match(COMMA)
-                args.append(self.expr())
-        if self._lookahead(1) == COMMA:
-            self._match(COMMA)
+                if self._lookahead() != RPAR:
+                    args.append(self.expr())
         return args
 
     def atom(self):
-        la1 = self._lookahead(1)
+        la1 = self._lookahead()
         if la1 == IDENTIFIER:
             atom = self.name()
         elif la1 in LITERAL:
@@ -424,13 +410,13 @@ class Parser:
 
     def name(self):
         beginloc = self.location
-        identifier = self._lookaheadToken(1)
+        identifier = self._lookaheadToken()
         self._match(IDENTIFIER)
         return ast.Variable(self._location(beginloc), identifier)
 
     def literal(self):
         beginloc = self.location
-        la1 = self._lookahead(1)
+        la1 = self._lookahead()
         if la1 == INTEGER:
             literal = self.integer()
         elif la1 == FLOAT:
@@ -449,13 +435,12 @@ class Parser:
         beginloc = self.location
         self._match(LSQB)
         pairs = []
-        if self._lookahead(1) != RSQB:
+        if self._lookahead() != RSQB:
             pairs.append(self.pair())
-            while self._lookahead(1) == COMMA and self._lookahead(2) != RSQB:
+            while self._lookahead() == COMMA and self._lookahead() != RSQB:
                 self._match(COMMA)
-                pairs.append(self.pair())
-            if self._lookahead(1) == COMMA:
-                self._match(COMMA)
+                if self._lookahead() != RSQB:
+                    pairs.append(self.pair())
         self._match(RSQB)
         return ast.OrderedPairs(self._location(beginloc), pairs)
 
@@ -469,25 +454,25 @@ class Parser:
 
     def integer(self):
         beginloc = self.location
-        integer = self._lookaheadToken(1)
+        integer = self._lookaheadToken()
         self._match(INTEGER)
         return ast.Integer(self._location(beginloc), integer)
 
     def float(self):
         beginloc = self.location
-        float_ = self._lookaheadToken(1)
+        float_ = self._lookaheadToken()
         self._match(FLOAT)
         return ast.Float(self._location(beginloc), float_)
 
     def boolean(self):
         beginloc = self.location
-        _bool = self._lookaheadToken(1)
+        _bool = self._lookaheadToken()
         self._match(*BOOL)
         return ast.Boolean(self._location(beginloc), _bool)
 
     def char(self):
         beginloc = self.location
-        char = self._lookaheadToken(1)
+        char = self._lookaheadToken()
         self._match(CHAR)
         return ast.Char(self._location(beginloc), char)
 

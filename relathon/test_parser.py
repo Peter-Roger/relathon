@@ -222,6 +222,15 @@ class TestParser(TestParserBase):
     def testAssignment(self):
         self.checkParse(astAssignment(astVariable(Tok(IDENTIFIER, "a")), Tok(EQUAL, "="), astVariable(Tok(IDENTIFIER,"b"))), Parser.expr_stmt, "a = b")
 
+    def testAssignmentTrailingSemi(self):
+        self.checkParse(astAssignment(astVariable(Tok(IDENTIFIER, "a")), Tok(EQUAL, "="), astVariable(Tok(IDENTIFIER,"b"))), Parser.simple_stmt, "a = b;")
+
+    def testAssignmentMultiLineNoTrailingSemi(self):
+        self.checkParse(astSuite([astAssignment(astVariable(Tok(IDENTIFIER, "a")), Tok(EQUAL, "="), astVariable(Tok(IDENTIFIER,"b"))), astAssignment(astVariable(Tok(IDENTIFIER, "c")), Tok(EQUAL, "="), astVariable(Tok(IDENTIFIER,"d")))]), Parser.simple_stmt, "a = b; c = d")
+
+    def testAssignmentMultiLineTrailingSemi(self):
+        self.checkParse(astSuite([astAssignment(astVariable(Tok(IDENTIFIER, "a")), Tok(EQUAL, "="), astVariable(Tok(IDENTIFIER,"b"))), astAssignment(astVariable(Tok(IDENTIFIER, "c")), Tok(EQUAL, "="), astVariable(Tok(IDENTIFIER,"d")))]), Parser.simple_stmt, "a = b; c = d;")
+
     def testCompAugAssignment(self):
         self.checkParse(astAssignment(astVariable(Tok(IDENTIFIER, "a")), Tok(STAREQUAL, "*="), astVariable(Tok(IDENTIFIER,"b"))), Parser.expr_stmt, "a *= b")
 

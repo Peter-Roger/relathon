@@ -67,7 +67,7 @@ class Function(Callable):
     def call(self, callstack, args):
         super().call(callstack, args)
         env = Environment(
-            envName=self.name,
+            name=self.name,
         )
         for param, arg in zip(self.parameters, args):
             env.define(param, arg)

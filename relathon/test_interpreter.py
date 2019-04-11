@@ -33,7 +33,7 @@ class TestInterpreterBase(unittest.TestCase):
 
     def checkInterpret(self, name, expected, text):
         self.interpretFromSource(text)
-        env = self.intrpr.currentEnv
+        env = self.intrpr.current_env
         result = env.resolve(name)
         self.assertEqual(expected, result)
 
@@ -50,6 +50,10 @@ class TestInterpreterBase(unittest.TestCase):
 
 class TestInterpreter(TestInterpreterBase):
 
+    def testNone(self):
+        name = 'r'
+        self.checkInterpret(name, None, "r = None;")
+
     # Relations
     def testBasicRelation(self):
         name = 'r'
@@ -59,6 +63,15 @@ class TestInterpreter(TestInterpreterBase):
         kwargs['bits'] = []
         rel = self.makeRelation(**kwargs)
         self.checkInterpret(name, rel, "r = new(1,1)")
+
+    def testBasicRelations(self):
+        name = 'r'
+        kwargs = {}
+        kwargs['rows'] = 2
+        kwargs['cols'] = 2
+        kwargs['bits'] = []
+        rel = self.makeRelation(**kwargs)
+        self.checkInterpret(name, rel, "r = new(1,1); r = new(2,2);")
 
     def testRelationBit(self):
         name = 'r'

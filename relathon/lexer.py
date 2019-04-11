@@ -161,7 +161,7 @@ class Lexer:
                     self.atbol = False
 
                     # blanklines and comment only lines do not affect indentation
-                    if tag in {BLANKLINE, COMMENT, NEWLINE}:
+                    if tag in (BLANKLINE, COMMENT, NEWLINE):
                         if tag == NEWLINE and self.prompt:
                             if self.blocks:
                                 self.blocks = 0
