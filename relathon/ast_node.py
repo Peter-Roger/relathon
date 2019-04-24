@@ -4,14 +4,13 @@
 # the GPL license that can be found in the LICENSE file.
 
 """This module provides a class for each node type of the abstract
-syntax tree (ast). The parser builds the ast. The structure of the tree and
-the type of each node encodes semantic meaning that the interpreter can
-then evaluate."""
-
-from abc import ABC
+syntax tree (AST). The parser builds the AST. The structure of the tree and
+the type of each node along with associated data encodes semantic meaning
+that the interpreter then evaluates."""
 
 class ASTNode:
-    """Abstract class for a node of an irregular heterogeneous abstract syntax tree.
+    """Abstract class for a node of an irregular heterogeneous
+    abstract syntax tree.
     """
     def __init__(self, location):
         self.location = location

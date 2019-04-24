@@ -18,7 +18,7 @@ Getting Started
 Requirements
 ------------
 
-Relathon has only one dependency: `pyrel`_. Pyrel can be installed using pip. Instructions for installing pyrel can be found at the project page.
+Relathon has only one dependency: `pyrel`_. Pyrel can be installed using pip. Instructions for installing pyrel are found at the project page.
 
 Preliminary
 ===========
@@ -36,9 +36,9 @@ Quoted from `wikipedia`_:
 Structure of a Relathon Program
 ===============================
 
-Relathon is a portmanteau of Relation Python because that is percisely what it is. If you are familiar with Python you will be comfortable writing relation programs in Relathon.
+The name Relathon is a portmanteau of the words Relation and Python. If you are familiar with Python you will quickly learn how to write relation programs in Relathon. All keywords are inherited from Python. Indentation is used to indicate logical blocks. Relathon's syntax and grammar is practically a subset of Python's, but there are a few differences that will be highlighted later on. You can view the full grammar specification in Backus normal form in `grammar`_.txt located in the project root directory.
 
-It was important that using Relathon required little overhead. It needed to feasibly permit line by line execution in an interactive console and writing small simple scripts needed to be seamless. Python's grammar emphasizes simplicity and readability by reducing boilerplate and organizing logical blocks with indentation. I decided to base Relathon's grammar off of Python for its demonstrated ease of use as a scripting language and with the idea that an already broad familiarity of the syntax would minimize the learning curve and encourage adoption. All keywords are inherited from python. Indentation is used to indicate a logical block. Relathon's syntax and grammar is practically a subset of Python's, but there are a few differences that will be highlighted. You can view the full grammar specification in Backus normal form in the file grammar.txt.
+The similarity with python boils down to a few considerations I had while designing Relathon. It was important to me that writing small simple scripts would be a quick and seamless experience, and that the syntax would feasibly permit line by line execution in an interactive console. This ruled out any kind of unweildy syntax rife with boilerplate. Python's minimalistic syntax and use of indentation emphasizes simplicity and readability. I decided to base Relathon's grammar off of Python for its demonstrated ease of use as a scripting language and with the idea that an already broad familiarity of the syntax would reduce the learning curve and encourage adoption.
 
 Keywords
 ---------
@@ -57,21 +57,23 @@ Types
 Relation
 ^^^^^^^^
 
-The nexus of Relathon is the **Relation** datatype. Along with **functions**, relations form the basis of relathon programs and are the language's only true types. Other 'types' are available as lexemes simply for the convenience of passing arguments to certain builtin functions.
+The nexus of Relathon is the **Relation** datatype. Along with **functions**, relations form the basis of relathon programs and are the language's only true types. Other types are available as lexemes simply for the convenience of passing arguments to certain builtin functions, but confer no additional functionality beyond this.
 
-Internally relations use a very vast implemention based on the Binary Decision Diagram, but as an abstraction they are represented as boolean matrices (matrix with entries from the boolean domain B = {0,1}). Relathon operates with relations on a finite set. The cartesian product of a set of rows and a set of columns is a matrix. The true entries of the matrix denote the relation. A true (or set) entry at col *x* and row *y* indicates that x is related to y. When printing relations an 'X' denotes true (bit is set) and a '.' denotes false (bit is unset).
+Internally relations use an effecient implemention based on Binary Decision Diagrams, but as an abstraction they are represented to the user as boolean matrices (matrix with entries from the boolean domain B = {0,1}). Relathon operates with relations on finite sets of integers. The cartesian product of the set of rows and the set of columns is the matrix. The true entries of the matrix denote the relation. In other words, a true (or set) entry at col *x* and row *y* indicates that x is related to y in the relation.
+
+The print() function will display the matrix representation. 'X' denotes true (is related; bit is set) and '.' denotes false (is not related; bit is unset).
 
 As an example,
-
-Let A = {0,1,2,3}
 
 The identity relation is defined as:
 
 I = {(x,y) | (x,y) ∈ AxA and x = y}
 
+Let A = {0,1,2,3}, then the Identity relation on A is,
+
 I = {(0,0), (1,1), (2,2), (3,3)}
 
-It corresponds to the identity matrix. This is demonstrated in relathon as follows:
+The identity relation corresponds to the identity matrix (from linear algebra). This is demonstrated in relathon as follows:
 
 .. code-block:: python
 
@@ -97,11 +99,11 @@ paramlist     ::= '(' [NAME, (',' NAME)* [,]] ')'
 
 suite         ::= simple_stmt | NEWLINE INDENT stmt+ DEDENT
 
-| **Function** definitions are similar to python function definitions. A function definition is introduced by the keywork "def" and followed by the function identifier, a parameter list, and a suite. The paramlist is a comma-separated parenthesized list of parameters. An indented block of statements beginning on the next line comprises the function suite.
+| **Function** definitions are similar to python function definitions. A function definition is introduced by the keyword "def" and followed by the function identifier, a parameter list, and a suite. The parameter list is a comma-separated parenthesized list of parameters. An indented block of statements beginning on the next line comprises the function suite.
 
 Alternatively, a function definition can also occur all on a single line. Instead of the colon (":") that usually precedes the indented code block, an equal ("=") is used followed by a single expression. No return statement is necessary because the value of the evaluated expression is the implied return value.
 
-These two functions are the same:
+These two functions are identical:
 
 .. code-block:: python
 
@@ -110,29 +112,35 @@ These two functions are the same:
 
     def transpose_composition(a,b) = (a*b)^
 
-
 Boolean
 ^^^^^^^
-**Booleans** exist, but are actually themselves represented as relations. *True* is the universal relation of dimension 1x1. *False* is the empty relation of dimension 1x1.
+**Booleans** exist, but are actually represented internally as relations. *True* is the universal relation (L) of dimension 1x1. *False* is the empty relation (O) of dimension 1x1.
+
+The universal relation is the relation that has all the elements:
+
+L = AxA = {(x,y) | (x,y) ∈ AxA }
+
+The empty relation is the empty set:
+
+O = Ø = {}
 
 .. code-block:: python
 
     # 1x1 universal relation
     R = True
+    R == L(1,1)
 
     # 1x1 empty relation
     S = False
-
-    # False (1x1 empty relation) will be assigned to G because R != S
-    G = R == S
+    S == O(1,1)
 
 OrderedPairs
 ^^^^^^^^^^^^
-**OrderedPairs** is a list of pairs (row, col) denoting which rows are related to which columns as an argument for several builtin functions.
+**OrderedPairs** is a list of parenthesized row, column pairs enveloped by square brackets. It is used as an argument for a number of builtin functions to indicate which row elements are related to which column elements in the relation.
 
 .. code-block:: python
 
-    # create ordered pairs with three entries
+    # create ordered pairs with three row, column pair entries
     pairs = [(0,0),(0,1),(0,2)]
 
     # create new 3x3 relation and set the bits in pairs
@@ -147,7 +155,7 @@ OrderedPairs
 
 int
 ^^^
-**int** is used as an argument for certain builtin functions to specify dimension information.
+**int** is used as an argument for several builtin functions to specify relation dimension information.
 
 float
 ^^^^^
@@ -156,7 +164,6 @@ float
 char
 ^^^^
 **char** is a single character surrounded by quotes (e.g. 'a'). It is used solely as an argument for the *setchars* function which changes the chars used to represent the true and false values when a binary relation is printed.
-
 
 Builtin Operators
 ---------------------------
@@ -206,12 +213,20 @@ Builtin Functions
 ======================================  ====================================================
 Relation Functions                      Description
 ======================================  ====================================================
+<<<<<<< HEAD
 **new(** rel, *bits* **)**              create a new relation with size of given relation
 **new(** rows, cols, *bits* **)**       create a new relation of given dimension
 **copy(** rel **)**                     create a copy of a relation
 **random(** rows, cols , *prob* **)**   create a new random relation
 **vec(** rows, cols, vec **)**          create a new vector of given dimension and row vec
 **vec(** rel, *vec* **)**               create a new vector of size rel and row vec
+=======
+**new(** rows, cols, *bits* **)**       return a new relation of given dimension
+**new(** rel, *bits* **)**              return a new relation with same dimension as rel
+**random(** rows, cols , *prob* **)**   return a new random relation
+**vec(** rows, cols, vec **)**          return a new vector of given dimension and row vec
+**vec(** rel, *vec* **)**               return a new vector with same dimension as rel and row vec
+>>>>>>> 8b60184... update readme
 **empty(** rel **)**                    test whether rel is empty i.e. equal to O (the empty set)
 
 **O(** rows, cols **)**                 return the empty relation of given dimension
@@ -230,7 +245,17 @@ Relation Functions                      Description
 Loops and Flow Control
 ----------------------
 
-Flow control and loops work the same in Relathon as they do in Python.
+While-statements and if-statements work the same in Relathon as they do in Python.
+
+While-statements
+^^^^^^^^^^^^^^^^
+
+while_stmt ::= 'while' expr ':' suite ['else' ':' suite]
+
+.. code-block:: python
+
+    while condition:
+        condition = update(condition)
 
 If-statements
 ^^^^^^^^^^^^^
@@ -245,16 +270,6 @@ if_stmt ::= 'if' expr ':' suite ('elif' expr ':' suite)* ['else' ':' suite]
         pass
     else:
         pass
-
-While-statements
-^^^^^^^^^^^^^^^^
-
-while_stmt ::= 'while' expr ':' suite ['else' ':' suite]
-
-.. code-block:: python
-
-    while condition:
-        condition = update(condition)
 
 Break and Continue
 ^^^^^^^^^^^^^^^^^^
@@ -321,8 +336,6 @@ R* = I ∪ R ∪ R² ∪ R³ ∪ R⁴ ...
         return closure
 
 
-.. code-block:: python
-
     rel = new(6,6,[(0,1),(1,3),(3,4),(4,5)])
     tc = transitive_closure(rel)
     rtc = reflexive_transitive_closure(rel)
@@ -357,14 +370,19 @@ R* = I ∪ R ∪ R² ∪ R³ ∪ R⁴ ...
 Graphs
 ------
 
-Relations can be used to describe directed graphs. The pairs in the relation become the directed edges of the graph. The relation matrix is the graph adjacency matrix.
+Relations are used to model graphs. Directed graphs can be modeled by the "is directed to" relation where the pairs of the relation are the directed edges of the graph. The boolean matrix which represents the relation is equivalent to the graph adjacency matrix.
 
-For example, consider the following relation R on A = {1,2,3,4,5}:
+G = {(x,y) | (x,y) ∈ AxA and x 'is directed to' y}
+
+To demonstrate this concept in Relathon, consider the following relation G on A = {1,2,3,4,5}:
+
+G = {(0,1),(1,2),(2,3),(3,1),(3,4)}
 
 .. code-block:: python
 
-    R = new(5,5,[(0,1),(1,2),(2,3),(3,1),(3,4)])
-    print(R)
+    edges = [(0,1),(1,2),(2,3),(3,1),(3,4)]
+    G = new(5,5,edges)
+    print(G)
 
 .. code-block:: text
 
@@ -374,19 +392,19 @@ For example, consider the following relation R on A = {1,2,3,4,5}:
     .X..X
     .....
 
-This is the corresponding directed graph:
+The corresponding graph diagram:
 
 .. image:: graph.png
 
-One way to represent nodes in a graph is with a vector. A vector is a row constant relation where all of the columns are identical.
+One way to represent the nodes in a graph is with a vector. A vector is a row constant relation where all of the columns are identical.
 
-Let S be a relation on A. S is a vector if (x,y) ∈ S for some y ∈ A implies (x,y) ∈ S for each y ∈ A. In other words, S is a vector if and only if S = SL.
+Let S be a relation on A. S is a vector if (x,y) ∈ S for some y ∈ A implies (x,y) ∈ S for each y ∈ A. In other words, S is a vector if and only if S = SL (S equals S composed with the universal relation).
 
 Let S be the vector on A representing the subset {0, 3}. To create this in Relathon:
 
 .. code-block:: python
 
-    S = vec(5,5,0) | vec(5,5,3)
+    S = vec(G, 0) | vec(G, 3)
     print(S)
 
 .. code-block:: text
@@ -397,12 +415,12 @@ Let S be the vector on A representing the subset {0, 3}. To create this in Relat
     XXXXX
     .....
 
-The set of predecessors of S is the relation R*S and the set of successors of S is the relation R^ * S:
+The set of predecessors are the nodes that can reach S in one step and the set of successors are the nodes that are reachable from S in one step. These two sets are easily computed. The predecessors of S is the relation G*S and the successors of S is the relation G^ * S:
 
 .. code-block:: python
 
-    pred = R * S
-    succ = R^ * S
+    pred = G * S
+    succ = G^ * S
     print(pred)
     print(succ)
 
@@ -420,7 +438,7 @@ The set of predecessors of S is the relation R*S and the set of successors of S 
     .....
     XXXXX
 
-The successors vector (R^ * S), that is, the transpose of R composed with S, describes the nodes that are reachable in one step from S. The vector R*^ * S, that is, the transpose of the reflexive-transitive closure composed with S, describes the nodes that are reachable from S in *n* steps. This can be computed using Relathon:
+The successors vector (G^ * S), that is, the transpose of G composed with S, describes the nodes that are reachable in one step from S. The vector G*^ * S, that is, the transpose of the reflexive-transitive closure composed with S, describes the nodes that are reachable from S in *n* steps. This can be computed using Relathon:
 
 .. code-block:: python
 
@@ -429,11 +447,11 @@ The successors vector (R^ * S), that is, the transpose of R composed with S, des
             vec = vec | rel^ * vec
         return vec
 
-Using the graph R and the vector S as defined above:
+Using the graph G and the vector S as defined above:
 
 .. code-block:: python
 
-    nodes = reachable(R, S)
+    nodes = reachable(G, S)
     print(nodes)
 
 .. code-block:: text
@@ -444,7 +462,7 @@ Using the graph R and the vector S as defined above:
     XXXXX
     XXXXX
 
-All rows are filled. This is what we expect because all nodes are reachable from node 0 and 3.
+The universal relation; all rows are filled. This is what we expect because all nodes in the graph G are reachable from node 0 and 3.
 
 
 .. _binary decision diagram: https://en.wikipedia.org/wiki/Binary_decision_diagram
@@ -452,3 +470,4 @@ All rows are filled. This is what we expect because all nodes are reachable from
 .. _pyrel: https://github.com/Peter-Roger/pyrel
 .. _KURE: https://www.informatik.uni-kiel.de/~progsys/kure2/
 .. _wikipedia: https://en.wikipedia.org/wiki/Binary_relation
+.. _grammar: https://github.com/Peter-Roger/relathon/blob/master/grammar.txt

@@ -3,7 +3,10 @@
 # This file is part of relathon. Use of this source code is governed by
 # the GPL license that can be found in the LICENSE file.
 
-"""This module describes Relathon's tree walk interpreter. The interpreter executes the abstract-syntax tree by walking (or visiting) each tree node and making descisions based upon the node type and data."""
+"""This module describes Relathon's interpreter. The interpreter
+executes the abstract-syntax tree by walking the tree and making
+executive descisions based upon the tree structure, node type, and
+attached data."""
 
 import relathon
 from ast_node import BinaryOperation
@@ -16,25 +19,27 @@ from collections import namedtuple, OrderedDict
 
 
 class Return(Exception):
-
+    """Return Class for executing function return statements."""
     def __init__(self, value):
         self.value = value
 
 
 class Continue(Exception):
+    """Continue Class for executing continue statements."""
     pass
 
 
 class Break(Exception):
+    """Break Class for executing break statements."""
     pass
 
 
 class Visitor(object):
-    """Base Class to the Tree-Walking node visitor interpreter."""
+    """Base Class for the Tree-Walking node visitor interpreter."""
 
     def visit(self, node):
         """Determines which interpreter method to call based on the
-        type of tree node."""
+        type of abstract syntax tree node."""
         className = node.__class__.__name__
         methodName = self.getMethodName(className)
         if hasattr(self, methodName):
@@ -57,18 +62,26 @@ class Interpreter(Visitor):
     LITERAL = int, float, str, bool
 
     def __init__(self, context=None):
+        """
+        Attributes:
+            context - the pyrel context keeps track of the relations
+            current_env - the current environment or scoped symbol table
+            callstack - tracks function calls
+        """
         self.context = context if context else PyrelContext()
         builtins_ = Environment(name="_builtins_")
         self.current_env = builtins_
         self._define_builtins()
-
         self.callstack = []
 
     def _define_builtins(self):
         """Initialise the builtins and global environments."""
+
+        # these represent the boolean values in Relathon
         self.TrueRel = self.context.new(1,1,[(0,0)])
         self.FalseRel = self.context.new(1,1)
 
+        # define the builtin functions
         if self.current_env.name == "_builtins_":
             builtins_ = self.current_env
             builtins_.define("new", NewFunction(self.context))
@@ -84,7 +97,7 @@ class Interpreter(Visitor):
             builtins_.define("I", IdentityFunction(self.context))
             builtins_.define("empty", IsEmptyFunction(self.TrueRel, self.FalseRel))
 
-
+            # dictionary mapping operator token to relation operation
             self.operatorToOperation = {
                 STAR: Relation.composition,
                 VBAR: Relation.join,

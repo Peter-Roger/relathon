@@ -1,3 +1,8 @@
+# Copyright Peter Roger. All rights reserved.
+#
+# This file is part of relathon. Use of this source code is governed by
+# the GPL license that can be found in the LICENSE file.
+
 """This module describes a class for each builtin function of relathon
 as well as a function object for custom defined functions."""
 
@@ -237,8 +242,6 @@ class SetBitsFunction(Callable):
             relation, bits = args[0], args[1].pairs
             relation.set_bits(bits, yesno)
         else:
-            # if not yesno:
-                # self.name = "un" + self.name
             msg = "{}() arguments must be a Relation and a OrderedPair, not {} and {}".format(self.name, args[0].__class__.__name__, args[1].__class__.__name__)
             raise TypeException(self.callstack, self.callstack[-1].location, self.name, msg)
 

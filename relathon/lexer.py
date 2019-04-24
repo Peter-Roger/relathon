@@ -3,7 +3,10 @@
 # This file is part of relathon. Use of this source code is governed by
 # the GPL license that can be found in the LICENSE file.
 
-"""The Relathon Lexigraphical Analyzer (lexer)."""
+"""This module describes the Relathon Lexigraphical Analyzer (lexer).
+The lexer is responsible for sequentially breaking the source file into
+a series of lexigraphical tokens that is consumed by the parser. This
+process is known as lexing or tokenizing."""
 
 import re
 import sys
@@ -15,11 +18,12 @@ TABSIZE = 8
 
 class Lexer:
 
+    # (Token, Regular expression) pairs
     EXPRESSIONS = (
-        (NEWLINE,r'\n'), # New lines can have preceding whitescape
-        (BLANKLINE, r'[ \t]+\n'),
+        (NEWLINE,r'\n'),
+        (BLANKLINE, r'[ \t]+\n'), # strictly whitespace ending with a newline
         (ESCAPED_NEWLINE,r'\\(?:\r\n?|\n)'),
-        (COMMENT, r'(\s)*#.*'), # Comments end with a newline
+        (COMMENT, r'(\s)*#.*'), # comments end with a newline
         (WHITESPACE, r'[ \t]+'),
         (IDENTIFIER, r'[A-Za-z_][A-Za-z0-9_-]*'), # Valid Pythonic Identifier
         (CHAR, r'\".\"|\'.\''),
@@ -87,7 +91,7 @@ class Lexer:
         self.p = 0
         self.column = 0
         self.line_num = 1 # line count begins at 1
-        self.atbol = True # set to True at initialization and after newline token is returned
+        self.atbol = True # True at initialization and after newline
         self.nesting = 0
         self.blocks = 0
 
@@ -100,7 +104,8 @@ class Lexer:
 
     def tokenize(self):
         """Tokenizes the entire source in one continuous pass.
-        Used during interactive mode.
+
+        NOTE: This is used for parsing in interactive mode.
         """
         tok = self.extractToken()
         self.tokens = [tok]
@@ -124,8 +129,8 @@ class Lexer:
         return self.current_token
 
     def extractToken(self):
-        """Matches the next sequence of input from the source with a recognized
-        pattern and returns the lexeme as a lexical token.
+        """Matches the next sequence of input from the source with a
+        recognized pattern and returns the lexeme as a lexical token.
 
         Returns:
             Token - the next lexical token
@@ -136,7 +141,8 @@ class Lexer:
         sameLogicalLine = False
         while self.p < len(self.string):
             if not sameLogicalLine: # then lineBegin and columnBegin are new
-                loc = Location(self.filename, self.p, self.line_num, self.column, self.line_num, self.column)
+                loc = Location(self.filename, self.p, self.line_num, \
+                        self.column, self.line_num, self.column)
             else:
                 sameLogicalLine = False
 
@@ -173,14 +179,16 @@ class Lexer:
 
                     if tag == WHITESPACE:
                         num_of_tabs = lexeme.count('\t')
-                        self.column = num_of_tabs * TABSIZE + (len(lexeme) - num_of_tabs)
+                        self.column = num_of_tabs * TABSIZE + \
+                                      (len(lexeme) - num_of_tabs)
                         loc.columnEnd = self.column
                     if self.column > self.indent_stack[self.indent]:
                         self.indent_stack.append(self.column)
                         self.indent += 1
                         self.pending_indents += 1
                     elif self.column < self.indent_stack[self.indent]:
-                        while self.indent > 0 and self.column < self.indent_stack[self.indent]:
+                        while self.indent > 0 and \
+                          self.column < self.indent_stack[self.indent]:
                             self.indent -= 1
                             self.pending_indents -= 1
                         if self.column != self.indent_stack[self.indent]:
@@ -194,8 +202,8 @@ class Lexer:
                     if self.pending_indents != 0:
                         if self.pending_indents < 0:
                             self.pending_indents += 1
-                            self.p = match.start() # DEDENT is not a character with a length, so don't count it
-                            return Token(DEDENT, DEDENT, loc)
+                            self.p = match.start() # DEDENT is not a character with a length,
+                            return Token(DEDENT, DEDENT, loc) # so don't count it
                         else:
                             self.pending_indents -= 1
                             return Token(INDENT, INDENT, loc)
@@ -235,6 +243,7 @@ class Lexer:
                 token = Token(tag, lexeme, loc)
                 return token
 
-        loc = Location(self.filename, self.p-1, self.line_num, self.column-1, self.line_num, self.column-1)
+        loc = Location(self.filename, self.p-1, self.line_num, \
+                       self.column-1,self.line_num, self.column-1)
         tok = Token(EOF, None, loc)
         return tok

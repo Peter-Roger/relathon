@@ -20,7 +20,8 @@ from parser import Parser
 import interpreter
 from errors import IndentationException, LexerException, ParserException, RelathonException
 from pyrel import PyrelException
-VERSION = '0.1.0'
+
+VERSION = '0.1.1'
 
 class Source:
     """Relathon source code.
@@ -89,24 +90,13 @@ class Relathon:
                 try:
                     parser.parse(parseMethod)
                 except IndentationException as e:
-                    try:
-                        if not e.lexer:
-                            if not e.expected:
-                                raise e
-                    finally:
-                        e = None
-                        del e
-
+                    if not (e.lexer or e.expected):
+                        raise e
                 except ParserException as e:
-                    try:
-                        if e.tag in ('EOF', 'NEWLINE'):
-                            pass
-                        else:
-                            raise e
-                    finally:
-                        e = None
-                        del e
-
+                    if e.tag in ('EOF', 'NEWLINE'):
+                        pass
+                    else:
+                        raise e
                 return
         return parser.parse(parseMethod)
 
@@ -124,12 +114,8 @@ class Relathon:
                     source += '\n'
                     ast = cls.parse(Source(filename, source), prompt=True)
                 except (LexerException, ParserException, IndentationException) as e:
-                    try:
-                        cls.print_error(e, source, prompt=True)
-                        return False
-                    finally:
-                        e = None
-                        del e
+                    cls.print_error(e, source, prompt=True)
+                    return False
 
                 if ast is None:
                     return True
@@ -170,17 +156,13 @@ class Relathon:
                 suffix = '.rel' if imprt else ''
                 fd = open('{}{}'.format(fd, suffix))
             except FileNotFoundError as e:
-                try:
-                    if imprt:
-                        raise FileNotFoundError
-                    else:
-                        print(("Relathon can't open file '{fname}': {reason}").format(fname=fd,
-                          reason=str(e)))
-                    exit_code = 1
-                    return exit_code
-                finally:
-                    e = None
-                    del e
+                if imprt:
+                    raise FileNotFoundError
+                else:
+                    print(("Relathon can't open file '{fname}': {reason}").format(fname=fd,
+                      reason=str(e)))
+                exit_code = 1
+                return exit_code
 
         if fd.isatty():
             cls.interact()
@@ -190,12 +172,8 @@ class Relathon:
                 exit_code = 0
                 intrpr = cls.run(fd=fd, intrpr=intrpr)
             except RelathonException as e:
-                try:
-                    fd.seek(0)
-                    cls.print_error(e, fd.read())
-                finally:
-                    e = None
-                    del e
+                fd.seek(0)
+                cls.print_error(e, fd.read())
 
             fd.close()
             if imprt and exit_code == 0:
@@ -205,8 +183,7 @@ class Relathon:
     @classmethod
     def print_error(self, error, source, prompt=False):
         """Print the error message to stderr."""
-        msg = error.get_message(source, prompt)
-        print(msg, file=sys.stderr)
+        print(error.get_message(source, prompt), file=sys.stderr)
 
 
 def main(fd=None):
@@ -216,7 +193,11 @@ def main(fd=None):
 
 
 def import_module(intrpr, symbol_table, module):
-    """Open a module and import symbols. Called from the interpreter."""
+    """Load and run a module and import the symbols into the current
+    environment.
+
+    NOTE: This function gets called only from within the interpreter.
+    """
     intrpr = Relathon.run_in_main(module, imprt=True, intrpr=intrpr)
     if type(intrpr) == int:
         sys.exit(intrpr)

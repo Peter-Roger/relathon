@@ -9,7 +9,7 @@ matters of scoping."""
 from collections import OrderedDict
 
 class Environment:
-    """Namespace container that maps names to objects.
+    """Environment namespace container that maps names to objects.
 
     Attributes:
         values (OrderedDict) - maps symbol names to values
@@ -54,7 +54,7 @@ class Environment:
         self.values[name] = value
 
     def resolve(self, name):
-        """Get a value from the environment or parent environments."""
+        """Get a value from the environment or parental environment."""
         value = self.values.get(name, False)
         if value is False and self.enclosingEnv is not None:
             value = self.enclosingEnv.resolve(name)

@@ -4,7 +4,8 @@
 # the GPL license that can be found in the LICENSE file.
 
 """This module provides every type of exception that might be produced
-during lexing, parsing, or interpreting.
+during lexing, parsing, or interpreting. Error messages are inspired by
+python style error messages.
 
 Exceptions:
     RelathonException
@@ -258,4 +259,3 @@ class IndentationException(RelathonException):
             else:
                 msg = "unexpected indent"
         super().__init__(location, msg)
-

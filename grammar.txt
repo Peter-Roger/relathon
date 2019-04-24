@@ -1,11 +1,11 @@
-# Grammar for Relathon in Backus–Naur form
+# Grammar for Relathon in Backus–Naur form;
 #
 # Start symbols for the grammar:
-#       module is a module or sequence of zero or more statements read from an input file;
+#       module is a sequence of zero or more statements read from an input file;
 #       single_input is a single interactive statement;
 
-module		  ::= (NEWLINE | stmt)* ENDMARKER
-single_input  ::= NEWLINE | simple_stmt | compound_stmt NEWLINE
+module        ::= (NEWLINE | stmt)* ENDMARKER
+single_input  ::= (NEWLINE | simple_stmt | compound_stmt) NEWLINE
 
 stmt          ::= simple_stmt
                 | compound_stmt

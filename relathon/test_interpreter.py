@@ -399,15 +399,11 @@ class TestInterpreter(TestInterpreterBase):
         self.checkInterpret(name, rel, "def ftc(R):\n\tP = I(R)\n\tQ = O(R)\n\tS = P\n\twhile Q != S:\n\t\tP = P * R\n\t\tQ = S\n\t\tS = S | P\n\treturn S\nr=ftc(new(3,3,[(0,1)]))")
 
     # import
-
     def testImport(self):
         import tempfile
         import os.path
         from pathlib import Path
-        import tracemalloc
-        tracemalloc.start()
         path = os.path.dirname(os.path.realpath(__file__))
-        snapshot1 = tracemalloc.take_snapshot()
         with tempfile.NamedTemporaryFile(mode='r+', dir=path, suffix='.rel') as f:
             name = 'r'
             kwargs = {}
@@ -721,11 +717,6 @@ class TestInterpreter(TestInterpreterBase):
     def testModuleNotFound(self):
         self.checkInterpreterError(ModuleNotFoundException,"import x")
 
-
-
-
-
-
 class TestObj:
 
     def __init__(self, test, **kwargs):
@@ -734,6 +725,7 @@ class TestObj:
 
 
 class TestRelation(TestObj, Relation):
+    """Dummy Relation object for testing."""
 
     def __init__(self, test, rel, **kwargs):
         kwargs = {}
@@ -751,7 +743,7 @@ class TestRelation(TestObj, Relation):
 
 
 class TestFunction(TestObj, Function):
-
+    """Dummy Fuction object for testing."""
     def __eq__(self, other):
         if self.__class__.__bases__[1] is not other.__class__:
             return False

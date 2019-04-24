@@ -6,8 +6,8 @@
 """A recursive decent parser with a lookahead of 1.
 
 Each function corresponds to a production rule in the grammar. The
-grammar should be considered documentation for this module and can
-be found in grammar.txt.
+relathon grammar should be considered documentation for this module and
+can be found in grammar.txt in the project root directory.
 """
 
 from tok import *
