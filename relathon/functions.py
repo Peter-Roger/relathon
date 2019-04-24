@@ -100,18 +100,26 @@ class NewFunction(Callable):
         self.parameters = self.overload[0]
 
     def call(self, callstack, args):
-        super().checkArity(callstack, args)
-        if type(args[0]) == Relation:
+        if args and (type(args[0]) == Relation or len(args) == 1 or args[1].__class__.__name__ == "OrderedPairs"):
             self.arity = (1,2)
             self.parameters = self.overload[1]
             super().call(callstack, args)
+            rel_args = []
             try:
-                args = (args[0].rows, args[0].cols, args[1].pairs)
+                rel_args.extend([args[0].rows, args[0].cols])
+            except AttributeError:
+               raise TypeException(callstack, callstack[-1].location, self.name, "Argument must be a relation.")
+            try:
+                ordered_pairs = args[1]
+                rel_args.append(ordered_pairs.pairs)
             except IndexError:
-                args = (args[0].rows, args[0].cols)
+                pass
             except AttributeError:
                 raise TypeException(callstack, callstack[-1].location, self.name, "bits argument must be an OrderedPair.")
+
         else:
+            self.arity = (2,3)
+            self.parameters = self.overload[0]
             super().call(callstack, args)
             if type(args[0]) == int and type(args[1]) == int:
 
@@ -119,11 +127,11 @@ class NewFunction(Callable):
                     if args[2].__class__.__name__ != "OrderedPairs":
                         raise TypeException(callstack, callstack[-1].location, self.name, "bits argument must be an OrderedPair.")
                     else:
-                        args = (args[0], args[1], args[2].pairs)
+                        rel_args = [args[0], args[1], args[2].pairs]
                 except IndexError:
                     pass
-
-        rel_args = tuple(args)
+            else:
+                rel_args = [*args]
         return self.context.new(*rel_args)
 
 
@@ -218,9 +226,9 @@ class RandomFunction(Callable):
                 rel_args = [args[0], args[1]]
                 len(args) == 3 and prob_arg.append(args[2])
             else:
-                raise TypeException(self.callstack, self.callstack[-1].location, self.name, "Invalid arguments passed to random function.")
+                raise TypeException(callstack, callstack[-1].location, self.name, "Invalid arguments passed to random function.")
         if prob_arg and not isinstance(prob_arg[0], float):
-            raise TypeException(self.callstack, self.callstack[-1].location, self.name, "Probability argument must be a float.")
+            raise TypeException(callstack, callstack[-1].location, self.name, "Probability argument must be a float.")
 
         if not relation:
             relation = self.context.new(*rel_args)
@@ -243,7 +251,7 @@ class SetBitsFunction(Callable):
             relation.set_bits(bits, yesno)
         else:
             msg = "{}() arguments must be a Relation and a OrderedPair, not {} and {}".format(self.name, args[0].__class__.__name__, args[1].__class__.__name__)
-            raise TypeException(self.callstack, self.callstack[-1].location, self.name, msg)
+            raise TypeException(callstack, callstack[-1].location, self.name, msg)
 
 
 class UnsetBitsFunction(Callable):
