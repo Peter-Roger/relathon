@@ -189,20 +189,6 @@ class VectorFunction(Callable):
         rel.vector(vector=kwargs['vec'])
         return rel
 
-class CopyFunction(Callable):
-    """Inbuilt copy function. Creates a copy of a relation."""
-
-    def __init__(self, context):
-        arity = (1,1)
-        super().__init__("copy", arity)
-        self.context = context
-
-    def call(self, callstack, args):
-        super().call(callstack, args)
-        relation = args[0]
-        return relation.copy()
-
-
 class RandomFunction(Callable):
     """Inbuilt random function. Creates a new random relation."""
 

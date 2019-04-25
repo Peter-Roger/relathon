@@ -170,7 +170,7 @@ Builtin Operators
 
 ========== ============
 Relation   Operators
-========== ============
+=======================
 **~** R    Complement
 R **^**    Transposition
 R **|** S  Union (join)
@@ -180,7 +180,7 @@ R **\*** S Composition
 
 =========== =======================
 Assignment  Operators
-=========== =======================
+===================================
 R **=** S   Assignment
 R **|=** S  Union assignment
 R **&=** S  Intersection assignment
@@ -189,7 +189,7 @@ R **\*=** S Composition assignment
 
 =========== ===========
 Boolean     Operators
-=========== ===========
+=======================
 R **and** S boolean and
 R **or** S  boolean or
 **not** R   boolean not
@@ -197,7 +197,7 @@ R **or** S  boolean or
 
 =========== =================
 Inclusivity Operators
-=========== =================
+=============================
 R **==** S  equals
 R **!=** S  not equals
 R **<** S   strict subset
@@ -213,20 +213,12 @@ Builtin Functions
 ======================================  ====================================================
 Relation Functions                      Description
 ======================================  ====================================================
-<<<<<<< HEAD
-**new(** rel, *bits* **)**              create a new relation with size of given relation
-**new(** rows, cols, *bits* **)**       create a new relation of given dimension
-**copy(** rel **)**                     create a copy of a relation
-**random(** rows, cols , *prob* **)**   create a new random relation
-**vec(** rows, cols, vec **)**          create a new vector of given dimension and row vec
-**vec(** rel, *vec* **)**               create a new vector of size rel and row vec
-=======
 **new(** rows, cols, *bits* **)**       return a new relation of given dimension
 **new(** rel, *bits* **)**              return a new relation with same dimension as rel
-**random(** rows, cols , *prob* **)**   return a new random relation
+**random(** rows, cols , *prob* **)**   return a new random relation of given dimension
+**random(** rel, *prob* **)**           return a new random relation with same dimension as rel
 **vec(** rows, cols, vec **)**          return a new vector of given dimension and row vec
 **vec(** rel, *vec* **)**               return a new vector with same dimension as rel and row vec
->>>>>>> 8b60184... update readme
 **empty(** rel **)**                    test whether rel is empty i.e. equal to O (the empty set)
 
 **O(** rows, cols **)**                 return the empty relation of given dimension
@@ -238,8 +230,8 @@ Relation Functions                      Description
 
 **set(** rel, bits **)**                set bits in relation
 **unset(** rel, bits **)**              unset bits in relation
-**print(** \*args **)**                 print
-**setchars(** one_ch, zero_ch **)**     change the chars used to print boolean matrix
+**print(** \*args **)**                 print args
+**setchars(** one_ch, zero_ch **)**     set the chars representing 1 and 0 in the boolean matrix
 ======================================  ====================================================
 
 Loops and Flow Control

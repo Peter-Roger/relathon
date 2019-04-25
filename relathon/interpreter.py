@@ -85,7 +85,6 @@ class Interpreter(Visitor):
         if self.current_env.name == "_builtins_":
             builtins_ = self.current_env
             builtins_.define("new", NewFunction(self.context))
-            builtins_.define("copy", CopyFunction(self.context))
             builtins_.define("random", RandomFunction(self.context))
             builtins_.define("vec", VectorFunction(self.context))
             builtins_.define("set", SetBitsFunction())

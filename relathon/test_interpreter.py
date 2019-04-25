@@ -427,15 +427,6 @@ class TestInterpreter(TestInterpreterBase):
         rel = self.makeRelation(**kwargs)
         self.checkInterpret(name, rel, "r = new(new(3,3),[(0,2)])")
 
-    def testRelationCopy(self):
-        name = 'r'
-        kwargs = {}
-        kwargs['rows'] = 3
-        kwargs['cols'] = 3
-        kwargs['bits'] = [(0,2)]
-        rel = self.makeRelation(**kwargs)
-        self.checkInterpret(name, rel, "s = new(3,3,[(0,2)])\nr = copy(s)")
-
     def testRelationRandomProb99(self):
         name = 'r'
         kwargs = {}
